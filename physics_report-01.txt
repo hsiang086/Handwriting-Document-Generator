@@ -1,0 +1,47 @@
+
+
+
+
+
+
+
+
+
+1. Objective of the Experiment
+The purpose of this experiment is to become familiar with the operation and basic principles of the oscilloscope. We will use the oscilloscope to measure voltage and time characteristics of electrical signals, observe AC waveforms, study Lissajous figures, investigate the charging and discharging behavior of an RC circuit, and observe the damped oscillation phenomenon in an RLC circuit.
+
+2. Hypothesis
+If the oscilloscope is operated correctly, it should clearly display the relationship between voltage and time for different input signals. In the RC circuit, the capacitor voltage should change exponentially during charging and discharging, and the measured half-life should be related to the time constant RC. In the RLC circuit, the waveform should show damped oscillation, and increasing the resistance should reduce the oscillation and eventually produce critical damping.
+
+3. Background / Theory
+An oscilloscope displays voltage as a function of time by using vertical deflection plates for the input signal and horizontal deflection plates for the time base sweep. The cathode-ray tube inside the oscilloscope creates an electron beam, and the beam position on the screen represents the electrical signal. For two sinusoidal inputs, Lissajous curves can be used to compare frequency ratios and phase differences.
+
+For an RC circuit, the charging behavior of the capacitor is exponential, and the charge increases according to q(t)=Cε(1-e^(-t/RC)). During discharging, the charge decreases as q(t)=qmax e^(-t/RC). The time constant is τ=RC, and the half-life is T1/2=RC ln2=0.693RC.
+
+For an LC circuit, the capacitor and inductor exchange electric and magnetic energy and produce oscillation with angular frequency ω0=1/√(LC). In an RLC circuit, resistance causes the oscillation amplitude to decrease with time. When the resistance is small, the circuit is underdamped and oscillates. As the resistance increases, the circuit approaches critical damping, and with even larger resistance it becomes overdamped.
+
+4. Materials & Apparatus
+Oscilloscope
+Function generator
+Oscilloscope probe
+Connecting wires
+Resistor (10 kΩ)
+Variable resistor (0–25 kΩ)
+Capacitors (0.01 μF, 0.001 μF)
+Inductor (33 mH)
+Breadboard
+
+5. Experimental Method
+1. First, set up the oscilloscope with the required initial settings and connect the probe to the calibration output to learn the basic single-channel operation.
+2. Adjust the intensity, focus, position, volts/div, and time/div controls until a stable and clear waveform is shown on the screen.
+3. Connect the function generator to the oscilloscope and measure several AC signals with different frequencies and amplitudes, including sine waves and square waves.
+4. Use two input signals to produce Lissajous figures and observe the patterns for frequency ratios such as 1:1, 2:1, 3:1, and 3:2.
+5. Build an RC circuit with a 10 kΩ resistor and a 0.01 μF capacitor, then use a square-wave input to observe capacitor charging and discharging.
+6. Change the period of the square wave under the conditions T >> RC, T > RC, and T ≈ RC, and record the waveforms shown on the oscilloscope.
+7. Measure the half-life T1/2 from the capacitor waveform and calculate the time constant τ, then compare the result with the theoretical value RC.
+8. Exchange the positions of the resistor and capacitor and observe the voltage across the resistor.
+9. Change the values of the resistor and capacitor to study how R and C affect the half-life and time constant.
+10. Build an RLC circuit using the resistor, capacitor, and inductor, then apply a square-wave signal to observe damped oscillation.
+11. Measure the half-life of the oscillation amplitude and use it to calculate the time constant.
+12. Measure the oscillation frequency and compare it with the theoretical angular frequency ω0=1/√(LC).
+13. Increase the variable resistor gradually and observe how the waveform changes from underdamped oscillation to critical damping.

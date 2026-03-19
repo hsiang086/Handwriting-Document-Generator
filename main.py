@@ -1,154 +1,128 @@
 import random
+import argparse
+import os
 from PIL import Image, ImageFilter, ImageEnhance
 
-# --- 1. CONFIGURATION & REALISM VARIABLES ---
-
-# Page Settings (A4 dimensions at ~150 DPI)
-PAGE_WIDTH = 1240
-PAGE_HEIGHT = 1754
-MARGIN_TOP = 150
-MARGIN_BOTTOM = 150
-MARGIN_LEFT = 120
-MARGIN_RIGHT = 120
-
-# Spacing & Sizing
-BASE_CHAR_SIZE = 45        # Base size to scale the 128x128 cells down to
-LINE_HEIGHT = 80           # Vertical space between lines
-WORD_SPACING = 35          # Space between words
-CHAR_SPACING_BASE = -5     # Base space between letters (negative pulls them closer)
-
-# Randomization / Imperfection Parameters
-SIZE_VAR = 0.08            # Normal distribution: standard deviation for scaling (8%)
-POS_X_VAR = 1.5            # Normal distribution: horizontal jitter (pixels)
-POS_Y_VAR = 2.5            # Normal distribution: vertical baseline jitter (pixels)
-ROTATION_RANGE = (-3, 3)   # Uniform distribution: min/max rotation (degrees)
-BLUR_RANGE = (0.4, 0.4)    # Uniform distribution: Gaussian blur radius
-OPACITY_RANGE = (0.6, 1.0) # Uniform distribution: Ink pressure/opacity (0.0 to 1.0)
+# --- CONFIGURATION ---
+PAGE_WIDTH, PAGE_HEIGHT = 1240, 1754  # A4 @ 150 DPI
+MARGINS = {'top': 150, 'bottom': 150, 'left': 120, 'right': 120}
+BASE_CHAR_SIZE = 40
+LINE_HEIGHT = 45         # <--- Reduced from 80 for tighter rows
+WORD_SPACING = 20
+CHAR_SPACING_BASE = -29
 
 # Sprite Sheet Info
 CHARACTERS = list("1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.,:?!+-=/'()\"")
 SAMPLES_PER_CHAR = 10
 CELL_SIZE = 128
 
-# --- 2. SCRIPT LOGIC ---
-
 def load_spritesheet(path):
-    """Loads the sprite sheet and returns a dictionary of character images."""
-    try:
-        sheet = Image.open(path).convert("RGBA")
-    except FileNotFoundError:
-        print(f"Error: Could not find '{path}'.")
-        exit()
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"Sprite sheet not found: {path}")
+    
+    sheet = Image.open(path).convert("RGBA")
+    
+    # Process transparency: Convert white to transparent
+    data = sheet.getdata()
+    # Using a threshold of 230 to catch off-white "paper" pixels in the sprites
+    new_data = [(255, 255, 255, 0) if (item[0] > 230 and item[1] > 230 and item[2] > 230) else item for item in data]
+    sheet.putdata(new_data)
 
     sprites = {}
     for row, char in enumerate(CHARACTERS):
-        sprites[char] = []
-        for col in range(SAMPLES_PER_CHAR):
-            left = col * CELL_SIZE
-            top = row * CELL_SIZE
-            # Crop the specific sample out of the grid
-            img = sheet.crop((left, top, left + CELL_SIZE, top + CELL_SIZE))
-            sprites[char].append(img)
+        sprites[char] = [
+            sheet.crop((col * CELL_SIZE, row * CELL_SIZE, (col + 1) * CELL_SIZE, (row + 1) * CELL_SIZE))
+            for col in range(SAMPLES_PER_CHAR)
+        ]
     return sprites
 
-def create_page():
-    """Creates a blank white page."""
+def create_new_page():
     return Image.new("RGBA", (PAGE_WIDTH, PAGE_HEIGHT), (255, 255, 255, 255))
 
-def generate_document(text, spritesheet_path, output_prefix="output_page"):
-    sprites = load_spritesheet(spritesheet_path)
-    
+def process_text(text, sprites, output_dir, output_prefix):
+    # Ensure output directory exists
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+        print(f"Created directory: {output_dir}")
+
     pages = []
-    current_page = create_page()
-    
-    x, y = MARGIN_LEFT, MARGIN_TOP
-    
-    # Simple word-wrapping logic
-    words = text.replace('\n', ' \n ').split(' ')
-    
-    for word in words:
-        if word == '\n':
-            x = MARGIN_LEFT
+    current_page = create_new_page()
+    x, y = MARGINS['left'], MARGINS['top']
+
+    lines = text.splitlines()
+
+    for line in lines:
+        # Handle empty lines (extra enters)
+        if not line.strip():
             y += LINE_HEIGHT
             continue
-            
-        # Estimate word length to check for line wrapping
-        estimated_width = len(word) * (BASE_CHAR_SIZE + CHAR_SPACING_BASE)
-        if x + estimated_width > PAGE_WIDTH - MARGIN_RIGHT:
-            x = MARGIN_LEFT
-            y += LINE_HEIGHT
-            
-            # Check for page wrapping
-            if y > PAGE_HEIGHT - MARGIN_BOTTOM:
-                pages.append(current_page)
-                current_page = create_page()
-                y = MARGIN_TOP
 
-        for char in word:
-            if char not in sprites:
-                continue # Skip unsupported characters
+        words = line.split(' ')
+        for word in words:
+            # Word wrapping check
+            est_word_w = len(word) * (BASE_CHAR_SIZE + CHAR_SPACING_BASE)
+            if x + est_word_w > PAGE_WIDTH - MARGINS['right']:
+                x = MARGINS['left']
+                y += LINE_HEIGHT
+
+            # Page splitting check
+            if y > PAGE_HEIGHT - MARGINS['bottom']:
+                pages.append(current_page)
+                current_page = create_new_page()
+                x, y = MARGINS['left'], MARGINS['top']
+
+            for char in word:
+                if char not in sprites: continue
                 
-            # Pick a random sample for this character
-            char_img = random.choice(sprites[char]).copy()
-            
-            # --- APPLY REALISM ---
-            
-            # 1. Scale/Size (Normal Distribution)
-            scale = random.gauss(1.0, SIZE_VAR)
-            new_size = int(CELL_SIZE * (BASE_CHAR_SIZE / CELL_SIZE) * scale)
-            char_img = char_img.resize((new_size, new_size), Image.Resampling.LANCZOS)
-            
-            # 2. Rotation (Uniform Range)
-            angle = random.uniform(*ROTATION_RANGE)
-            char_img = char_img.rotate(angle, resample=Image.Resampling.BICUBIC, expand=True)
-            
-            # 3. Opacity / Ink Pressure
-            alpha = char_img.split()[3]
-            alpha = ImageEnhance.Brightness(alpha).enhance(random.uniform(*OPACITY_RANGE))
-            char_img.putalpha(alpha)
-            
-            # 4. Blur
-            blur_amount = random.uniform(*BLUR_RANGE)
-            if blur_amount > 0:
-                char_img = char_img.filter(ImageFilter.GaussianBlur(blur_amount))
+                char_img = random.choice(sprites[char]).copy()
                 
-            # 5. Position Jitter (Normal Distribution)
-            jitter_x = random.gauss(0, POS_X_VAR)
-            jitter_y = random.gauss(0, POS_Y_VAR)
-            
-            # Calculate final paste coordinates
-            # Offset y by (BASE_CHAR_SIZE - new_size) to keep bottoms aligned
-            paste_x = int(x + jitter_x)
-            paste_y = int(y + jitter_y + (BASE_CHAR_SIZE - char_img.height) / 2)
-            
-            # Paste onto the page using the character's alpha channel as a mask
-            current_page.paste(char_img, (paste_x, paste_y), char_img)
-            
-            # Advance X for the next character, adding slight random spacing
-            x += new_size + CHAR_SPACING_BASE + random.gauss(0, 1.0)
-            
-        # Add space after word
-        x += WORD_SPACING + random.gauss(0, 3.0)
+                # Realism Transforms
+                scale = random.gauss(1.0, 0.02)
+                new_size = int(BASE_CHAR_SIZE * scale)
+                char_img = char_img.resize((new_size, new_size), Image.Resampling.LANCZOS)
+                char_img = char_img.rotate(random.uniform(-3, 3), resample=Image.Resampling.BICUBIC, expand=True)
+                
+                # Paste
+                paste_x = int(x + random.gauss(0, 0.5))
+                # Vertical alignment centering
+                paste_y = int(y + random.gauss(0, 1.0) + (BASE_CHAR_SIZE - char_img.height) // 2)
+                current_page.paste(char_img, (paste_x, paste_y), char_img)
+                
+                x += new_size + CHAR_SPACING_BASE + random.gauss(0, 1.0)
+
+            x += WORD_SPACING + random.gauss(0, 2.0)
+        
+        # Reset X and move to next line
+        x = MARGINS['left']
+        y += LINE_HEIGHT
 
     pages.append(current_page)
     
-    # Save the pages
     for i, page in enumerate(pages):
-        filename = f"{output_prefix}_{i+1}.png"
-        # Convert back to RGB to save as standard PNG/JPG without transparency issues
-        page.convert("RGB").save(filename)
-        print(f"Saved {filename}")
+        out_name = f"{output_prefix}_{i+1}.png"
+        full_path = os.path.join(output_dir, out_name)
+        page.convert("RGB").save(full_path)
+        print(f"-> Saved: {full_path}")
 
-# --- 3. RUN THE SCRIPT ---
+def main():
+    parser = argparse.ArgumentParser(description="Handwriting Document Generator")
+    parser.add_argument("input", help="Path to the .txt file")
+    parser.add_argument("--sheet", default="handwriting_spritesheet00.png", help="Path to sprite sheet")
+    parser.add_argument("--out_dir", default="output", help="Directory to save images")
+    parser.add_argument("--prefix", default="page", help="Prefix for filenames")
+    
+    args = parser.parse_args()
 
-sample_text = """Hello there! This is a test of the handwriting document generator.
-It takes a sprite sheet, picks random samples, and applies Gaussian distributions to the layout.
-
-Features include:
-- Variable sizing and rotation.
-- Simulated ink pressure.
-- Micro-jitter on the X and Y axis.
-- Very slight blurring for a natural, non-digital look!"""
+    try:
+        with open(args.input, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        sprites = load_spritesheet(args.sheet)
+        process_text(content, sprites, args.out_dir, args.prefix)
+        print("\nSuccess! Check your output folder.")
+        
+    except Exception as e:
+        print(f"Error: {e}")
 
 if __name__ == "__main__":
-    generate_document(sample_text, "handwriting_spritesheet.png")
+    main()
