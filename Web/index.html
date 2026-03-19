@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Handwriting Data Collector</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: #f0f2f5;
+            padding: 2rem;
+            color: #333;
+        }
+        .container {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+        }
+        .char-display {
+            font-size: 3rem;
+            font-family: monospace;
+            background: #e9ecef;
+            display: inline-block;
+            padding: 10px 20px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        /* The drawing canvas is fixed to 128x128 */
+        #drawCanvas {
+            border: 2px solid #ccc;
+            border-radius: 4px;
+            cursor: crosshair;
+            background: #fff;
+            margin: 20px 0;
+            touch-action: none; /* Prevents scrolling while drawing on mobile */
+        }
+        .controls button {
+            padding: 10px 20px;
+            margin: 5px;
+            font-size: 1rem;
+            cursor: pointer;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            transition: opacity 0.2s;
+        }
+        .controls button:hover { opacity: 0.8; }
+        #clearBtn { background: #ff4d4d; color: white; }
+        #nextBtn { background: #4caf50; color: white; }
+        #downloadBtn { background: #2196f3; color: white; display: none; width: 100%; margin-top: 15px;}
+        .progress { color: #666; font-size: 0.9rem; margin-top: 15px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Draw the character:</h2>
+    <div class="char-display" id="targetChar">a</div>
+    <div>Sample <span id="sampleNum">1</span> of 10</div>
+    
+    <canvas id="drawCanvas" width="128" height="128"></canvas>
+    
+    <div class="controls" id="drawControls">
+        <button id="clearBtn">Clear</button>
+        <button id="nextBtn">Save & Next</button>
+    </div>
+    <button id="downloadBtn">Download Sprite Sheet</button>
+
+    <div class="progress" id="progressText">Character 1 of 61</div>
+</div>
+
+<script>
+    // 26 lowercase, 26 uppercase, and some common punctuation
+    const CHARACTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.,?!-'()\"".split("");
+    const SAMPLES_PER_CHAR = 10;
+    const SIZE = 128; // 128x128 pixels
+
+    let currentCharIndex = 0;
+    let currentSampleIndex = 0;
+
+    // Set up the drawing canvas
+    const canvas = document.getElementById('drawCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Set up the hidden sprite sheet canvas
+    // Width: 10 columns (samples) * 128px
+    // Height: Total characters (rows) * 128px
+    const spriteSheet = document.createElement('canvas');
+    spriteSheet.width = SAMPLES_PER_CHAR * SIZE; 
+    spriteSheet.height = CHARACTERS.length * SIZE;
+    const spriteCtx = spriteSheet.getContext('2d');
+
+    // Fill sprite sheet with transparent white (or solid white if you prefer)
+    spriteCtx.fillStyle = "#ffffff";
+    spriteCtx.fillRect(0, 0, spriteSheet.width, spriteSheet.height);
+
+    // Drawing State
+    let isDrawing = false;
+    let lastX = 0;
+    let lastY = 0;
+
+    // Initialize Canvas settings
+    function initCanvas() {
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, SIZE, SIZE);
+        ctx.lineWidth = 4;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.strokeStyle = '#000000';
+    }
+
+    function startDrawing(e) {
+        isDrawing = true;
+        const pos = getPos(e);
+        [lastX, lastY] = [pos.x, pos.y];
+    }
+
+    function draw(e) {
+        if (!isDrawing) return;
+        e.preventDefault();
+        const pos = getPos(e);
+        ctx.beginPath();
+        ctx.moveTo(lastX, lastY);
+        ctx.lineTo(pos.x, pos.y);
+        ctx.stroke();
+        [lastX, lastY] = [pos.x, pos.y];
+    }
+
+    function stopDrawing() {
+        isDrawing = false;
+    }
+
+    function getPos(e) {
+        const rect = canvas.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        return {
+            x: clientX - rect.left,
+            y: clientY - rect.top
+        };
+    }
+
+    // Event Listeners for Mouse
+    canvas.addEventListener('mousedown', startDrawing);
+    canvas.addEventListener('mousemove', draw);
+    canvas.addEventListener('mouseup', stopDrawing);
+    canvas.addEventListener('mouseout', stopDrawing);
+
+    // Event Listeners for Touch (Mobile/Tablet support)
+    canvas.addEventListener('touchstart', startDrawing, {passive: false});
+    canvas.addEventListener('touchmove', draw, {passive: false});
+    canvas.addEventListener('touchend', stopDrawing);
+
+    // UI Updates
+    function updateUI() {
+        if (currentCharIndex >= CHARACTERS.length) {
+            document.getElementById('targetChar').textContent = "Done!";
+            document.getElementById('sampleNum').textContent = "-";
+            document.getElementById('drawControls').style.display = 'none';
+            document.getElementById('downloadBtn').style.display = 'block';
+            canvas.style.pointerEvents = 'none';
+            return;
+        }
+
+        const char = CHARACTERS[currentCharIndex];
+        // Handle special display for space if you add it, but currently using printable chars
+        document.getElementById('targetChar').textContent = char;
+        document.getElementById('sampleNum').textContent = currentSampleIndex + 1;
+        document.getElementById('progressText').textContent = `Character ${currentCharIndex + 1} of ${CHARACTERS.length}`;
+        initCanvas();
+    }
+
+    // Buttons
+    document.getElementById('clearBtn').addEventListener('click', initCanvas);
+
+    document.getElementById('nextBtn').addEventListener('click', () => {
+        // Calculate coordinates on the sprite sheet
+        // X is determined by the sample number (0 to 9)
+        // Y is determined by the character index (0 to 60+)
+        const destX = currentSampleIndex * SIZE;
+        const destY = currentCharIndex * SIZE;
+
+        // Copy current 128x128 drawing to the specific grid spot on the sprite sheet
+        spriteCtx.drawImage(canvas, destX, destY);
+
+        // Advance counters
+        currentSampleIndex++;
+        if (currentSampleIndex >= SAMPLES_PER_CHAR) {
+            currentSampleIndex = 0;
+            currentCharIndex++;
+        }
+        
+        updateUI();
+    });
+
+    document.getElementById('downloadBtn').addEventListener('click', () => {
+        const link = document.createElement('a');
+        link.download = 'handwriting_spritesheet.png';
+        link.href = spriteSheet.toDataURL('image/png');
+        link.click();
+    });
+
+    // Start
+    initCanvas();
+    updateUI();
+</script>
+
+</body>
+</html>
