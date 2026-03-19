@@ -71,6 +71,7 @@
 
     #guideCanvas {
       pointer-events: none;
+      z-index: 1;
     }
 
     #drawCanvas {
@@ -213,7 +214,6 @@
 
 <script>
   const CHARACTERS = "1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.,:?!+-=/'()\"".split("");
-  //const CHARACTERS = "1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.,?!-'()\"".split("");
   const SAMPLES_PER_CHAR = 10;
   const SIZE = 128;
 
@@ -240,8 +240,9 @@
 
   const statusText = document.getElementById("statusText");
 
-  spriteCtx.fillStyle = "#ffffff";
-  spriteCtx.fillRect(0, 0, spriteSheet.width, spriteSheet.height);
+  // Removed white background fill from the sprite sheet so it stays transparent
+  // spriteCtx.fillStyle = "#ffffff";
+  // spriteCtx.fillRect(0, 0, spriteSheet.width, spriteSheet.height);
 
   let isDrawing = false;
   let lastX = 0, lastY = 0;
@@ -249,66 +250,65 @@
   function setStatus(msg) {
     statusText.textContent = msg;
   }
+
   function drawGuides() {
-  // Clear the guide canvas completely
-  guideCtx.clearRect(0, 0, SIZE, SIZE);
+    // Clear the guide canvas completely
+    guideCtx.clearRect(0, 0, SIZE, SIZE);
 
-  // Fill the background of the GUIDE canvas with white
-  // This acts as the "paper" behind the drawing layer
-  guideCtx.fillStyle = "#ffffff";
-  guideCtx.fillRect(0, 0, SIZE, SIZE);
+    // Fill the background of the GUIDE canvas with white
+    guideCtx.fillStyle = "#ffffff";
+    guideCtx.fillRect(0, 0, SIZE, SIZE);
 
-  const line1 = SIZE * 0.25;
-  const line2 = SIZE * 0.50;
-  const baseline = SIZE * 0.75;
-  const centerX = SIZE * 0.50;
+    const line1 = SIZE * 0.25;
+    const line2 = SIZE * 0.50;
+    const baseline = SIZE * 0.75;
+    const centerX = SIZE * 0.50;
 
-  guideCtx.beginPath();
-  
-  // 1. Top and Bottom Solid Lines (Blue/Subtle)
-  guideCtx.setLineDash([]);
-  guideCtx.moveTo(0, 0.5);
-  guideCtx.lineTo(SIZE, 0.5);
-  guideCtx.moveTo(0, SIZE - 0.5);
-  guideCtx.lineTo(SIZE, SIZE - 0.5);
+    guideCtx.beginPath();
+    
+    // 1. Top and Bottom Solid Lines (Blue/Subtle)
+    guideCtx.setLineDash([]);
+    guideCtx.moveTo(0, 0.5);
+    guideCtx.lineTo(SIZE, 0.5);
+    guideCtx.moveTo(0, SIZE - 0.5);
+    guideCtx.lineTo(SIZE, SIZE - 0.5);
 
-  // 2. Baseline (Solid - most important line)
-  guideCtx.moveTo(0, baseline + 0.5);
-  guideCtx.lineTo(SIZE, baseline + 0.5);
-  guideCtx.strokeStyle = "rgba(33, 150, 243, 0.5)"; // Stronger blue
-  guideCtx.stroke();
+    // 2. Baseline (Solid - most important line)
+    guideCtx.moveTo(0, baseline + 0.5);
+    guideCtx.lineTo(SIZE, baseline + 0.5);
+    guideCtx.strokeStyle = "rgba(33, 150, 243, 0.5)";
+    guideCtx.stroke();
 
-  // 3. Middle and 1/4 lines (Dashed)
-  guideCtx.beginPath();
-  guideCtx.setLineDash([4, 4]);
-  guideCtx.moveTo(0, line1 + 0.5);
-  guideCtx.lineTo(SIZE, line1 + 0.5);
-  guideCtx.moveTo(0, line2 + 0.5);
-  guideCtx.lineTo(SIZE, line2 + 0.5);
-  
-  // 4. Vertical Center (Dotted)
-  guideCtx.moveTo(centerX + 0.5, 0);
-  guideCtx.lineTo(centerX + 0.5, SIZE);
+    // 3. Middle and 1/4 lines (Dashed)
+    guideCtx.beginPath();
+    guideCtx.setLineDash([4, 4]);
+    guideCtx.moveTo(0, line1 + 0.5);
+    guideCtx.lineTo(SIZE, line1 + 0.5);
+    guideCtx.moveTo(0, line2 + 0.5);
+    guideCtx.lineTo(SIZE, line2 + 0.5);
+    
+    // 4. Vertical Center (Dotted)
+    guideCtx.moveTo(centerX + 0.5, 0);
+    guideCtx.lineTo(centerX + 0.5, SIZE);
 
-  guideCtx.strokeStyle = "rgba(33, 150, 243, 0.2)"; // Lighter blue
-  guideCtx.stroke();
-  guideCtx.setLineDash([]); // Reset dash for drawing
-}
+    guideCtx.strokeStyle = "rgba(33, 150, 243, 0.2)";
+    guideCtx.stroke();
+    guideCtx.setLineDash([]); // Reset dash
+  }
 
-function initCanvas() {
-  // IMPORTANT: Clear the draw canvas to transparency 
-  // so the guideCanvas underneath is visible.
-  ctx.clearRect(0, 0, SIZE, SIZE);
-  
-  // Set drawing styles
-  ctx.lineWidth = 4;
-  ctx.lineCap = "round";
-  ctx.lineJoin = "round";
-  ctx.strokeStyle = "#000000";
-  
-  // Redraw the guides on the background layer
-  drawGuides();
-}
+  function initCanvas() {
+    // Keep draw canvas transparent
+    ctx.clearRect(0, 0, SIZE, SIZE);
+    
+    ctx.lineWidth = 4;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.strokeStyle = "#000000";
+    
+    // Redraw guides underneath
+    drawGuides();
+  }
+
   function startDrawing(e) {
     e.preventDefault();
     isDrawing = true;
@@ -364,6 +364,7 @@ function initCanvas() {
     initCanvas();
     const sx = sampleIndex * SIZE;
     const sy = charIndex * SIZE;
+    // Will draw the existing transparent cell on top of the transparent drawCanvas
     ctx.drawImage(spriteSheet, sx, sy, SIZE, SIZE, 0, 0, SIZE, SIZE);
   }
 
@@ -407,8 +408,8 @@ function initCanvas() {
     const destX = targetSample * SIZE;
     const destY = targetChar * SIZE;
 
-    spriteCtx.fillStyle = "#ffffff";
-    spriteCtx.fillRect(destX, destY, SIZE, SIZE);
+    // Use clearRect to ensure transparency is maintained when saving strokes
+    spriteCtx.clearRect(destX, destY, SIZE, SIZE);
     spriteCtx.drawImage(canvas, destX, destY);
 
     if (isEditing) {
@@ -427,12 +428,8 @@ function initCanvas() {
   });
 
   document.getElementById("clearBtn").addEventListener("click", () => {
-    if (isEditing) {
-      loadCellToDrawCanvas(editCharIndex, editSampleIndex);
-      spriteCtx.fillStyle = "#ffffff";
-    } else {
-      initCanvas();
-    }
+    // Simply clear the canvas back to scratch (for both normal drawing and editing)
+    initCanvas();
     setStatus("Canvas cleared.");
   });
 
@@ -494,6 +491,18 @@ function initCanvas() {
     }
   });
 
+  // Helper function to export with a solid white background
+  function getExportCanvas() {
+    const exportCanvas = document.createElement("canvas");
+    exportCanvas.width = spriteSheet.width;
+    exportCanvas.height = spriteSheet.height;
+    const eCtx = exportCanvas.getContext("2d");
+    eCtx.fillStyle = "#ffffff";
+    eCtx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+    eCtx.drawImage(spriteSheet, 0, 0);
+    return exportCanvas;
+  }
+
   function canvasToBlob(canvasEl, type = "image/png", quality) {
     return new Promise((resolve, reject) => {
       if (!canvasEl.toBlob) {
@@ -520,7 +529,7 @@ function initCanvas() {
 
   async function downloadSpriteSheet() {
     try {
-      const blob = await canvasToBlob(spriteSheet, "image/png");
+      const blob = await canvasToBlob(getExportCanvas(), "image/png");
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
@@ -538,7 +547,7 @@ function initCanvas() {
 
   async function shareSpriteSheet() {
     try {
-      const blob = await canvasToBlob(spriteSheet, "image/png");
+      const blob = await canvasToBlob(getExportCanvas(), "image/png");
       const file = new File([blob], "handwriting_spritesheet.png", { type: "image/png" });
 
       if (navigator.share && (!navigator.canShare || navigator.canShare({ files: [file] }))) {
@@ -561,7 +570,7 @@ function initCanvas() {
 
   async function copyImageToClipboard() {
     try {
-      const blob = await canvasToBlob(spriteSheet, "image/png");
+      const blob = await canvasToBlob(getExportCanvas(), "image/png");
 
       if (
         navigator.clipboard &&
@@ -583,7 +592,7 @@ function initCanvas() {
 
   async function copyDataURL() {
     try {
-      const dataURL = spriteSheet.toDataURL("image/png");
+      const dataURL = getExportCanvas().toDataURL("image/png");
       if (navigator.clipboard && navigator.clipboard.writeText) {
         await navigator.clipboard.writeText(dataURL);
         setStatus("Data URL copied. Paste/send it to another device.");
