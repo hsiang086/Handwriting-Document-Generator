@@ -4,9 +4,6 @@
 
 
 
-
-
-
 1. Objective of the Experiment
 The purpose of this experiment is to become familiar with the operation and basic principles of the oscilloscope. We will use the oscilloscope to measure voltage and time characteristics of electrical signals, observe AC waveforms, study Lissajous figures, investigate the charging and discharging behavior of an RC circuit, and observe the damped oscillation phenomenon in an RLC circuit.
 
