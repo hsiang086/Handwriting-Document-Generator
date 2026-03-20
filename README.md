@@ -4,11 +4,11 @@
 
 ## Dependencies
 ```bash
-pip install pillow==12
+pip install pillow==12.1.1
 ```
 
 ## Add to source file `~/.bashrc` or `~/.zshrc` ...
 ```bash
-alias hanwriting_gen="python ~/<PATH TO MAIN>PY>"
+alias handwriting_gen="python ~/<PATH TO MAIN>PY>"
 ```
 
