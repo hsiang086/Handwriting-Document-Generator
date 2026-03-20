@@ -10,6 +10,7 @@ BASE_CHAR_SIZE = 40
 LINE_HEIGHT = 45         # <--- Reduced from 80 for tighter rows
 WORD_SPACING = 20
 CHAR_SPACING_BASE = -29
+INK_DARKEN_FACTOR = 0.3  # <--- NEW: 0.0 is pure black, 1.0 is original color
 
 # Sprite Sheet Info
 CHARACTERS = list("1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.,:?!+-=/'()\"")
@@ -22,10 +23,21 @@ def load_spritesheet(path):
     
     sheet = Image.open(path).convert("RGBA")
     
-    # Process transparency: Convert white to transparent
+    # Process transparency and deepen ink color
     data = sheet.getdata()
-    # Using a threshold of 230 to catch off-white "paper" pixels in the sprites
-    new_data = [(255, 255, 255, 0) if (item[0] > 230 and item[1] > 230 and item[2] > 230) else item for item in data]
+    new_data = []
+    
+    for item in data:
+        # Catch off-white "paper" pixels
+        if item[0] > 230 and item[1] > 230 and item[2] > 230:
+            new_data.append((255, 255, 255, 0)) # Make transparent
+        else:
+            # Darken the ink pixels by multiplying their RGB values
+            r = int(item[0] * INK_DARKEN_FACTOR)
+            g = int(item[1] * INK_DARKEN_FACTOR)
+            b = int(item[2] * INK_DARKEN_FACTOR)
+            new_data.append((r, g, b, item[3]))
+            
     sheet.putdata(new_data)
 
     sprites = {}
@@ -77,10 +89,10 @@ def process_text(text, sprites, output_dir, output_prefix):
                 char_img = random.choice(sprites[char]).copy()
                 
                 # Realism Transforms
-                scale = random.gauss(1.0, 0.02)
+                scale = random.gauss(1.0, 0.01)
                 new_size = int(BASE_CHAR_SIZE * scale)
                 char_img = char_img.resize((new_size, new_size), Image.Resampling.LANCZOS)
-                char_img = char_img.rotate(random.uniform(-3, 3), resample=Image.Resampling.BICUBIC, expand=True)
+                # char_img = char_img.rotate(random.uniform(-3, 3), resample=Image.Resampling.BICUBIC, expand=True)
                 
                 # Paste
                 paste_x = int(x + random.gauss(0, 0.5))

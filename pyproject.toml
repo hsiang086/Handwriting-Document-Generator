@@ -1,7 +1,9 @@
 [project]
 name = "handwriting-document-generator"
-version = "0.1.1"
+version = "0.1.2"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.15"
-dependencies = [ "pillow==2.1.1" ]
+dependencies = [
+    "pillow==12.1.1",
+]
